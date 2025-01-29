@@ -109,7 +109,8 @@ void Joints::update(double time)
                 }
                 if( state.hasEffort() )
                 {
-                    LOG_WARN_S << "Effort command ignored for the joint '" << jointName << "' (full name: '" << jointNameFull << ")'";
+                    motorJoints[jointNameFull].first->setFeedForwardTorque(state.effort);
+                    //LOG_WARN_S << "Effort command ignored for the joint '" << jointName << "' (full name: '" << jointNameFull << ")'";
                 }
                 if( state.hasRaw() )
                 {
