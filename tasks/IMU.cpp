@@ -216,7 +216,7 @@ void IMU::update( double time )
         // TODO: add acceleration
         utils::Vector v_a, a_l;
         validImu->getLinearAcceleration(&a_l);
-        imusens.acc = orientation_con * a_l;
+        imusens.acc = orientation_con * (a_l - control->sim->getGravity());
         validImu->getAngularVelocity(&v_a);
         imusens.gyro = orientation_con * v_a;
     }
