@@ -15,6 +15,12 @@ import_types_from "objectDetectionTypes.hpp"
 import_types_from "wrenchTypes.hpp"
 import_types_from "base"
 
+types = ['mars/JointCurrents']
+
+# type exports
+typekit do
+    export_types *types
+end
 
 #Disable default deployments, most of the time stand_alone deployments are useless
 #since the simulation needs plugins within the same deployment to work
