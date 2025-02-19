@@ -15,12 +15,14 @@ import_types_from "objectDetectionTypes.hpp"
 import_types_from "wrenchTypes.hpp"
 import_types_from "base"
 
+
 types = ['mars/JointCurrents']
 
 # type exports
 typekit do
     export_types *types
 end
+
 
 #Disable default deployments, most of the time stand_alone deployments are useless
 #since the simulation needs plugins within the same deployment to work
@@ -215,7 +217,6 @@ task_context "Joints", subclasses: "Plugin" do
 
 end
 
-=begin
 task_context "ForceTorque6DOF", subclasses: "Plugin" do
 
 	output_port("wrenches_deprecated", "std/vector< /base/samples/Wrench >")
@@ -227,6 +228,7 @@ task_context "ForceTorque6DOF", subclasses: "Plugin" do
             doc('If this array is set the sensors will be renamed for the external interface')
 end
 
+=begin
 task_context "ContactForceSensor", subclasses: "Plugin" do
 
     property('wrench_mappings', 'std::vector<mars/WrenchMapping>').
@@ -272,6 +274,7 @@ task_context "LaserRangeFinder", subclasses: "Plugin" do
     property('robot_name', '/std/string', '').
         doc('Name of the robot')
 end
+=end
 
 # Can be used to simulate laser scanners with more than one vertical scan line
 # (e.g. Velodyne).
@@ -291,7 +294,7 @@ task_context "RotatingLaserRangeFinder", subclasses: "Plugin" do
     output_port('pointcloud', '/base/samples/Pointcloud').
         doc 'Received distances converted to a pointcloud'
 end
-=end
+
 task_context "IMU", subclasses: "Plugin" do
     needs_configuration
 

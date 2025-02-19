@@ -37,8 +37,9 @@ bool Joints::configureHook()
         return false;
 
     // set robot name as prefix
-    if (_robot_name.value() != "")
-        prefix = _robot_name;
+    if (_robot_name.get() != "")
+        prefix = _robot_name.get();
+
 
     // add prefix to the joint names from config to be able to find the joints inside the mars
     // since all mars elements contains prefix in their names

@@ -2,8 +2,18 @@
 
 #include "RotatingLaserRangeFinder.hpp"
 
-#include <mars/sim/RotatingRaySensor.h>
-#include <mars/interfaces/sim/SensorManagerInterface.h>
+//#include <mars/sim/RotatingRaySensor.h>
+//#include <mars/interfaces/sim/SensorManagerInterface.h>
+
+#include <mars_interfaces/sim/ControlCenter.h>
+#include <mars_utils/mathUtils.h>
+
+#include <envire_core/graph/EnvireGraph.hpp>
+#include <envire_core/items/Item.hpp>
+#include <envire_types/sensors/RotatingRaySensor.hpp>
+#include <mars_core/sensors/RotatingRaySensor.hpp>
+
+#include <base/Logging.hpp>
 
 using namespace mars;
 
@@ -35,20 +45,33 @@ bool RotatingLaserRangeFinder::startHook()
 {
     if (! RotatingLaserRangeFinderBase::startHook())
         return false;
-           
-    mSensorID = control->sensors->getSensorID( _name.value() );
-    if( !mSensorID ){
-        std::cout <<  "There is no sensor by the name of " << _name.value() << 
-                " in the scene" << std::endl;
+
+    std::string name = _name.value();
+
+    if (!control->envireGraph->containsFrame(name))
+    {
+        LOG_ERROR_S << "There is no frame '" << name << "' in the graph";
         return false;
     }
 
-    mSensor = dynamic_cast<mars::sim::RotatingRaySensor*>(control->sensors->getSimSensor(mSensorID));
-    if( !mSensor ){
-        std::cerr  << "The sensor with " <<  _name.value() <<  
-                " is not of the correct type (RotatingRaySensor)" << std::endl;
+    using RotatingRaySensorItem = envire::core::Item<::envire::types::sensors::RotatingRaySensor>;
+
+    if (!control->envireGraph->containsItems<RotatingRaySensorItem>(name))
+    {
+        LOG_ERROR_S << "There is no RotatingRaySensor object in the frame '" << name << "'";
         return false;
     }
+
+    LOG_INFO_S << "Found item for RotatingRaySensor in the frame '" << name << "'";
+    //TODO: Load the found sensor and write the sensor data to ports
+
+
+    //mSensor = dynamic_cast<mars::sim::RotatingRaySensor*>(control->sensors->getSimSensor(mSensorID));
+    //if( !mSensor ){
+    //    std::cerr  << "The sensor with " <<  _name.value() <<  
+    //            " is not of the correct type (RotatingRaySensor)" << std::endl;
+    //    return false;
+    //}
     
     return true;
 }
