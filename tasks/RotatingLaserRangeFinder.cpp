@@ -63,15 +63,16 @@ bool RotatingLaserRangeFinder::startHook()
     }
 
     LOG_INFO_S << "Found item for RotatingRaySensor in the frame '" << name << "'";
-    //TODO: Load the found sensor and write the sensor data to ports
 
-
-    //mSensor = dynamic_cast<mars::sim::RotatingRaySensor*>(control->sensors->getSimSensor(mSensorID));
-    //if( !mSensor ){
-    //    std::cerr  << "The sensor with " <<  _name.value() <<  
-    //            " is not of the correct type (RotatingRaySensor)" << std::endl;
-    //    return false;
-    //}
+    using BaseSensorItem = envire::core::Item<std::shared_ptr<interfaces::BaseSensor>>;
+    auto& it = control->envireGraph->getItem<BaseSensorItem>(name);
+    auto baseSensor = it->getData();
+    mSensor = std::dynamic_pointer_cast<mars::core::RotatingRaySensor>(baseSensor);
+    if( !mSensor ){
+        std::cerr  << "The sensor with " <<  _name.value() <<  
+                " is not of the correct type (RotatingRaySensor)" << std::endl;
+        return false;
+    }
     
     return true;
 }
