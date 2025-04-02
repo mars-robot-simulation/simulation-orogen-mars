@@ -3,6 +3,7 @@
 #include <mars_core/Simulator.hpp>
 #include <mars_utils/Thread.h>
 #include <mars_utils/mathUtils.h>
+#include <mars_utils/misc.h>
 #include <mars_interfaces/sim/SimulatorInterface.h>
 
 #include <mars/tasks/MarsControl.hpp>
@@ -123,7 +124,7 @@ Task::~Task()
 {
   delete mExecutorLock;
   delete mExecutorSignal;
-  //delete app;
+  //delete simulation;
 }
 
 void Task::processInQtThread(function<void()> f)
@@ -639,17 +640,17 @@ void Task::errorHook()
 
 void Task::stopHook()
 {
-    /*
-    std::cout << "STOP HOOK" << std::endl;
-    for(unsigned int i=0;i<plugins.size();i++){
-        plugins[i]->handleTaskShudown();
-    }
-    simulatorInterface->exitTask();
+    
+    // std::cout << "STOP HOOK" << std::endl;
+    // for(unsigned int i=0;i<plugins.size();i++){
+    //     plugins[i]->handleTaskShudown();
+    // }
+    // simulatorInterface->exitTask();
 
-    std::cout << "STOP HOOK quitting qapp" << std::endl;
-    QCoreApplication::quit(); //Quitting QApplication too
-    std::cout << "STOP HOOK quitting qapp finish" << std::endl;
-    */
+    // std::cout << "STOP HOOK quitting qapp" << std::endl;
+    // QCoreApplication::quit(); //Quitting QApplication too
+    // std::cout << "STOP HOOK quitting qapp finish" << std::endl;
+    
 }
 
 void Task::registerPlugin(Plugin* plugin){
@@ -677,13 +678,13 @@ void Task::cleanupHook()
 
 void Task::cleanupUI()
 {
-    for(unsigned int i=0;i<plugins.size();i++){
-        plugins[i]->handleMarsShudown();
-    }
-    plugins.clear();
+    // for(unsigned int i=0;i<plugins.size();i++){
+    //     plugins[i]->handleMarsShudown();
+    // }
+    // plugins.clear();
 
-    //simulatorInterface->exitMars();
-    //while( simulatorInterface->isSimRunning()) ;
+    simulatorInterface->exitMars();
+    while( simulatorInterface->isSimRunning()) mars::utils::msleep(1);
 
 
     LOG_DEBUG_S << "CLEANUP HOOK quitting qapp finish";
@@ -693,7 +694,7 @@ void Task::cleanupUI()
     libManager->releaseLibrary("mars_core");
     libManager->releaseLibrary("cfg_manager");
     libManager->releaseLibrary("mars_graphics");
-    delete simulation;
+    //delete simulation;
 //    libManager->releaseLibrary("mars_gui");
 //    libManager->releaseLibrary("mars_graphics");
 //    libManager->releaseLibrary("gui_core");
