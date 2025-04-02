@@ -330,6 +330,22 @@ task_context "IMU", subclasses: "Plugin" do
         doc 'provides timestamped IMUReading samples containing the calibrated sensor readings.'
 end
 
+task_context "ImprintInfo", subclasses: "Plugin" do
+    needs_configuration
+
+    output_port("imprintInfo", "/std/string").
+        doc('Contact information seralized into yaml string')
+
+    output_port("x", "double").
+        doc('x')
+    output_port("y", "double").
+        doc('y')
+    output_port("type", "int").
+        doc('type')
+
+    periodic 0.5
+end
+
 =begin
 task_context "EntityFakeDetection", subclasses: "CameraPlugin" do
 
