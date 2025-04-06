@@ -42,16 +42,18 @@ void ImprintInfo::updateHook()
     ImprintInfoBase::updateHook();
     unsigned long id = control->dataBroker->getDataID("mars_sim", "imprint_plugin");
     data_broker::DataPackage dbPackage = control->dataBroker->getDataPackage(id);
-    double x=0, y=0;
+    double x=0, y=0, z=0;
     int type = -1;
     dbPackage.get("x", &x);
     dbPackage.get("y", &y);
+    dbPackage.get("z", &z);
     dbPackage.get("type", &type);
     //if(type > -1)
     {
         configmaps::ConfigMap map;
         map["x"] = x;
         map["y"] = y;
+        map["z"] = z;
         map["type"] = type;
         std::string s = map.toYamlString();
         _imprintInfo.write(s);
