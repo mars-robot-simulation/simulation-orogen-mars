@@ -87,10 +87,12 @@ void RotatingLaserRangeFinder::updateHook()
     }
 
     base::samples::Pointcloud pointcloud;
-    pointcloud.time = getTime();
+    //pointcloud.time = getTime();
     
     std::vector<mars::utils::Vector> data;
-    if(mSensor->getPointcloud(data)) {
+    long long time;
+    if(mSensor->getPointcloud(data, &time)) {
+        pointcloud.time = base::Time::fromMilliseconds(time);
         // TODO Min/max is actually already part of the sensor
         std::vector<mars::utils::Vector>::iterator it = data.begin();
         for(; it != data.end(); it++) {
