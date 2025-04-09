@@ -297,7 +297,7 @@ void* Task::startTaskFunc(void* argument)
     }
 
     mars->marsGraphics = libManager->getLibraryAs<mars::interfaces::GraphicsManagerInterface>("mars_graphics");
-
+    marsGraphics = mars->marsGraphics;
     // Synchronize with configureHook
     marsArguments->initialized = true;
 
@@ -326,22 +326,14 @@ int Task::getOptionCount(const std::vector<Option>& options)
 bool Task::setShow_coordinate_system(bool value)
 {
     if(!marsGraphics){
-        if(!qApp)
-        {
-            return true;
-        }
-        else
-        {
-            LOG_ERROR("Could not change view of coordinate systems without an Graphics interface\n");
-            return false;
-        }
+        return true;
     }
 
     //Call the base function, DO-NOT Remove
-    // if(value)
-    //     marsGraphics->hideCoords();
-    // else
-    //     marsGraphics->showCoords();
+    //if(value)
+    //    marsGraphics->hideCoords();
+    //else
+    //    marsGraphics->showCoords();
 
     return(mars::TaskBase::setShow_coordinate_system(value));
 }
