@@ -107,6 +107,9 @@ task_context "Task" do
 	    property('start_sim', 'bool', false).
 	    doc('starts the simulation after loading the initial scene(s)')
 
+      property('slope_approx_frame', '/std/string', "").
+	    doc('If this property is set, the frame orientation will be used to estimate a slope of the frame by writing an adapted gravity vector on slope_approx_gravity_out ')
+
         # Add a task context
         # operation('addPlugin').
         #       returns('int').
@@ -116,12 +119,16 @@ task_context "Task" do
 
         input_port('control_action', '/mars/Control')
 
+        input_port('gravity_in',"/base/Vector3d")
+        input_port('heading_in',"double")
+
         #This operation moves a node to a specific position, simpliar to the positions property but can be used during runtime
         operation("move_node").
             argument("arg","/mars/Positions")
 
         output_port('time', 'double')
         output_port('simulated_time', '/base/Time')
+        output_port('slope_approx_gravity_out',"/base/Vector3d")
 
         port_driven 'control_action'
 

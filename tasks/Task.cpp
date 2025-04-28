@@ -19,6 +19,7 @@
 #include <mars_interfaces/sim/NodeManagerInterface.h>
 
 #include <mars_core/SimMotor.hpp>
+#include <mars_core/Simulator.hpp>
 #include <mars_interfaces/sim/MotorManagerInterface.h>
 
 //#include <mars/multisim-plugin/MultiSimPlugin.h>
@@ -501,6 +502,39 @@ void Task::configureUI()
         simulatorInterface->loadScene(_initial_scene.get(), std::string("initial"),false,false);
     }
     LOG_INFO_S << "after load";
+
+    if(!_slope_approx_frame.get().empty()){
+        std::string frameId = _slope_approx_frame.get();
+        interfaces::ControlCenter *control = simulatorInterface->getControlCenter();
+        if (!control->envireGraph->containsFrame(frameId))
+        {
+            LOG_ERROR_S << "There is no frame '" << frameId << "' in the graph";
+        }
+        else {
+            using DynamicObjectItem = envire::core::Item<interfaces::DynamicObjectItem>;
+            if (!control->envireGraph->containsItems<DynamicObjectItem>(frameId))
+            {
+                LOG_ERROR_S << "There is no dynamic object in the frame '" << frameId << "'";
+            }
+            else {
+                using DynamicObjectItemItr = envire::core::EnvireGraph::ItemIterator<DynamicObjectItem>;
+                DynamicObjectItemItr begin_itr, end_itr;
+                boost::tie(begin_itr, end_itr) = control->envireGraph->getItems<DynamicObjectItem>(frameId);
+
+                while (begin_itr != end_itr)
+                {
+                    auto& dynamicObject = begin_itr->getData().dynamicObject;
+                    if (dynamicObject->getName() == frameId)
+                    {
+                        slopeEstimateFrame = dynamicObject;
+                        break;
+                    }
+                    begin_itr++;
+                }
+            }
+        }
+    }
+
     if(startStop) {
       LOG_INFO_S << "startSim";
       simulatorInterface->StartSimulation();
@@ -624,6 +658,90 @@ void Task::updateHook()
         exception(PHYSICS_ERROR);
  //       QCoreApplication::quit(); //Quitting QApplication too
     }
+
+    // estimate slope if frame is defined
+    // this is just a test implementation (aproximation) for earth gravity
+    // would have to move into a sperated task or to the IMU task if it is useful
+    auto validObject = slopeEstimateFrame.lock();
+    if(validObject) {
+        utils::Quaternion q;
+        validObject->getRotation(&q);
+        q.x() = -q.x();
+        q.y() = -q.y();
+        q.z() = -q.z();
+        utils::Vector v(0, 0, -1);
+        v = q*v;
+        // we just move towards the direction of the new gravity as kind of filtering
+        // better would be to apply the orientation difference with a small filter amount
+        outGravity += (v-outGravity)*0.01;
+        outGravity.normalize();
+        _slope_approx_gravity_out.write(outGravity*9.81);
+    }
+
+    utils::Vector v;
+    if(_gravity_in.read(v) == RTT::NewData) {
+        simulatorInterface->setGravity(v);
+    }
+    double heading;
+    if(_heading_in.read(heading) == RTT::NewData) {
+        auto validObject = slopeEstimateFrame.lock();
+        if(validObject) {
+            utils::Quaternion q;
+            utils::Vector p;
+            validObject->getPosition(&p);
+            validObject->getRotation(&q);
+            double currentHeading = utils::getYaw(q);
+            utils::Vector v(1.0, 0.0, 0.0);
+            utils::Vector v2 = q*v;
+            utils::Vector zero(0, 0, 0);
+            v2.z() = 0.0;
+            currentHeading = fabs(utils::angleBetween(v, v2));
+            if(v2.y() < 0) currentHeading = -currentHeading;
+            q = utils::angleAxisToQuaternion(heading - currentHeading, utils::Vector(0.0, 0.0, 1.0));
+            simulatorInterface->physicsThreadLock();
+            simulatorInterface->rotate(validObject->getName(), heading-currentHeading, utils::Vector(0.0, 0.0, 1.0));
+/*
+            core::Simulator::applyChildPositions(simulatorInterface->getControlCenter()->envireGraph->vertex("World::crex"),
+                                                 simulatorInterface->getControlCenter()->envireGraph,
+                                                 simulatorInterface->getControlCenter()->graphTreeView);
+            validObject->rotateAtPoint(p, q, false);
+            // clear dynamics
+            validObject->setLinearVelocity(zero);
+            validObject->setAngularVelocity(zero);
+            std::vector<std::shared_ptr<interfaces::DynamicObject>> frames;
+            std::map<std::shared_ptr<interfaces::DynamicObject>, int> handledFrames;
+            handledFrames[validObject] = 0;
+            std::vector<std::shared_ptr<interfaces::DynamicObject>> newFrames;
+            frames = validObject->getLinkedFrames();
+            while(frames.size() > 0)
+            {
+                std::shared_ptr<interfaces::DynamicObject> frame = frames.back();
+                frames.pop_back();
+                frame->rotateAtPoint(p, q, false);
+                frame->setLinearVelocity(zero);
+                frame->setAngularVelocity(zero);
+                handledFrames[frame] = 0;
+                newFrames = frame->getLinkedFrames();
+                for(auto &it: newFrames)
+                {
+                    if(handledFrames.find(it) != handledFrames.end())
+                    {
+                        // already handled
+                        continue;
+                    }
+                    const auto it2 = std::find(frames.begin(), frames.end(), it);
+                    if (it2 != frames.end())
+                    {
+                        // already planned for processing
+                        continue;
+                    }
+                    frames.push_back(it);
+                }
+            }
+*/
+            simulatorInterface->physicsThreadUnlock();
+        }
+    }
 }
 
 void Task::errorHook()
@@ -632,7 +750,7 @@ void Task::errorHook()
 
 void Task::stopHook()
 {
-    
+
     // std::cout << "STOP HOOK" << std::endl;
     // for(unsigned int i=0;i<plugins.size();i++){
     //     plugins[i]->handleTaskShudown();
@@ -642,7 +760,7 @@ void Task::stopHook()
     // std::cout << "STOP HOOK quitting qapp" << std::endl;
     // QCoreApplication::quit(); //Quitting QApplication too
     // std::cout << "STOP HOOK quitting qapp finish" << std::endl;
-    
+
 }
 
 void Task::registerPlugin(Plugin* plugin){

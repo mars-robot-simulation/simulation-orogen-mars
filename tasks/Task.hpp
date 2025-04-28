@@ -6,6 +6,7 @@
 #include <data_broker/ReceiverInterface.h>
 #include "Plugin.hpp"
 #include <boost/thread/mutex.hpp>
+#include <mars_interfaces/sim/DynamicObject.hpp>
 
 class QApplication;
 class QObject;
@@ -90,6 +91,8 @@ namespace mars {
         static std::string configDir;
         static bool marsRunning;
         bool configureError;
+        std::weak_ptr<mars::interfaces::DynamicObject> slopeEstimateFrame;
+        mars::utils::Vector outGravity;
 
         pthread_t thread_info;
         static lib_manager::LibManager* libManager;
