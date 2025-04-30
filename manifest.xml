@@ -11,12 +11,10 @@ The mars-core module provides the base for other modules that require the simula
   <!-- Dependencies are resolved via osdep file in the autoproj configuration -->
   <depend package="rtt" />
   <depend package="tools/logger" />
-  <depend package="simulation/mars/app" />
-  <depend package="simulation/mars/gui" />
-  <depend package="simulation/mars/graphics" />
-  <depend package="simulation/mars/sim" />
-  <depend package="simulation/mars/scene_loader" />
-  <depend package="simulation/mars/smurf_loader" />
+  <depend package="simulation/mars2/mars_graphics" />
+  <depend package="simulation/mars2/mars_app" />
+  <depend package="simulation/mars2/mars_gui" />
+  <depend package="simulation/mars2/mars_core" />
   <versioncontrol type="git" url="" />
   <export>
     <cpp cflags="" lflags="" />

@@ -1,6 +1,7 @@
 /* Generated from orogen/lib/orogen/templates/tasks/Task.cpp */
 
 #include "TOFCamera.hpp"
+#include <mars_utils/misc.h>
 
 using namespace mars;
 
@@ -48,21 +49,37 @@ void TOFCamera::cleanupHook()
     TOFCameraBase::cleanupHook();
 }
 
-
 void TOFCamera::getData()
-{	
-    base::samples::Pointcloud pcl;
-
-    std::vector<mars::utils::Vector> colors;
-
-    pcl.time = base::Time::fromMilliseconds(camera->getImageTime());
-    camera->getColoredPointcloud(&(pcl.points), &(colors));
-
-    pcl.colors.resize(colors.size());
-    for (uint i = 0; i < pcl.colors.size(); ++i)
+{
+    if (camera == nullptr)
     {
-        pcl.colors.at(i) = colors.at(i).homogeneous();
+        exception(EXCEPTION);
+        return;
     }
+    if(camera->haveNewData())
+    {
+        base::samples::Pointcloud pcl;
+        base::samples::RigidBodyState rbs;
 
-    _pointcloud.write(pcl);
+        std::vector<mars::utils::Vector> colors;
+
+        //pcl.time = base::Time::fromMilliseconds(camera->getImageTime());
+        pcl.time = getTime();
+        rbs.time = pcl.time;
+        rbs.sourceFrame = _camera_frame.value();
+        rbs.targetFrame = _world_frame.value();
+        camera->getPose(rbs.position, rbs.orientation);
+        rbs.cov_orientation = base::Matrix3d::Identity();
+        camera->getColoredPointcloud(&(pcl.points), &(pcl.colors));
+
+        // pcl.colors.resize(colors.size());
+        // for (uint i = 0; i < pcl.colors.size(); ++i)
+        // {
+        //     pcl.colors.at(i) = colors.at(i).homogeneous();
+        // }
+
+        //utils::msleep(1000);
+        _orientation_samples.write( rbs );
+        _pointcloud.write(pcl);
+    }
 }

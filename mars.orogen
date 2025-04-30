@@ -3,8 +3,8 @@ name 'mars'
 using_library "mars_interfaces", :typekit => false
 using_library "mars_gui", :typekit => false
 using_library "mars_app", :typekit => false
-using_library "mars_sim", :typekit => false
-using_library "mars_smurf_loader", :typekit => false
+using_library "mars_core", :typekit => false
+#using_library "mars_smurf_loader", :typekit => false
 using_library "lib_manager", :typekit => false
 using_library "configmaps", :typekit => false
 
@@ -14,6 +14,14 @@ import_types_from "poseType.hpp"
 import_types_from "objectDetectionTypes.hpp"
 import_types_from "wrenchTypes.hpp"
 import_types_from "base"
+
+
+types = ['mars/JointCurrents']
+
+# type exports
+typekit do
+    export_types *types
+end
 
 
 #Disable default deployments, most of the time stand_alone deployments are useless
@@ -32,6 +40,7 @@ import_types_from "base"
 # one deployment to be able to share their static resources.
 task_context "Task" do
 	needs_configuration
+	needs_global_initializer :qt
 
         operation("loadScene").
             argument("path","/std/string")
@@ -55,13 +64,13 @@ task_context "Task" do
         property('initial_scene', '/std/string').
 	    doc('the full path to the initial scene, this is needed because operations are not accessible during configuration within syskit (deadlock)')
 
-	property('initial_scenes', '/std/vector</std/string>').
+	    property('initial_scenes', '/std/vector</std/string>').
 	    doc('the full path to the initial scene, this is needed because operations are not accessible during configuration within syskit (deadlock)')
 
         property('positions', 'std/vector<mars/Positions>' ).
 	    doc('override positions in the scene (scn) file, e.g. move the terrain to create different experiment setups without changing the scene file itself')
 
-	property('initial_pose', 'mars/Pose' ).
+	    property('initial_pose', 'mars/Pose' ).
 	    doc('override initial joint positions in the scene (scn) file, i.e. set an initial pose')
 
         property('config_dir', '/std/string', "#{ENV['AUTOPROJ_CURRENT_ROOT']}/install/configuration/mars_default").
@@ -70,7 +79,7 @@ task_context "Task" do
         property('plugin_dir', '/std/string', "#{ENV['AUTOPROJ_CURRENT_ROOT']}/install/lib").
 	    doc('the full path where the plugins can be found')
 
-	property('plugins', '/std/vector</std/string>').
+	    property('plugins', '/std/vector</std/string>').
 	    doc('additional mars plugins to load. This can be a relative path to the plugin_dir, or absolute.')
 
         property('simulation_property_list', '/std/vector</mars/SimulationProperty>').
@@ -92,11 +101,14 @@ task_context "Task" do
         property('raw_options', '/std/vector<mars::Option>').
             doc('forward the original mars arguments, such as -c 1600 for setting the ode port - option consists of name, here: -c and parameter: here 1600')
 
-	property('realtime_calc', 'bool', false).
+	    property('realtime_calc', 'bool', false).
 	    doc('if true, simulation runs in real time or slower, but not faster')
 
-	property('start_sim', 'bool', false).
+	    property('start_sim', 'bool', false).
 	    doc('starts the simulation after loading the initial scene(s)')
+
+      property('slope_approx_frame', '/std/string', "").
+	    doc('If this property is set, the frame orientation will be used to estimate a slope of the frame by writing an adapted gravity vector on slope_approx_gravity_out ')
 
         # Add a task context
         # operation('addPlugin').
@@ -106,6 +118,9 @@ task_context "Task" do
         # method removePlugin(input: TaskContext) return bool
 
         input_port('control_action', '/mars/Control')
+
+        input_port('gravity_in',"/base/Vector3d")
+        input_port('heading_in',"double")
 
         #This operation moves a node to a specific position, simpliar to the positions property but can be used during runtime
         operation("move_node").
@@ -125,6 +140,7 @@ task_context "Task" do
 
         output_port('time', 'double')
         output_port('simulated_time', '/base/Time')
+        output_port('slope_approx_gravity_out',"/base/Vector3d")
 
         port_driven 'control_action'
 
@@ -144,8 +160,6 @@ task_context "CameraPlugin", subclasses: "Plugin" do
 	    doc('name of the camera in the scene file')
     property('robot_name', '/std/string', '').
         doc('Name of the robot')
-
-
 end
 
 task_context "Camera", subclasses: "CameraPlugin" do
@@ -153,19 +167,26 @@ task_context "Camera", subclasses: "CameraPlugin" do
 
     output_port 'frame', ro_ptr('base::samples::frame::Frame')
 end
-
+=begin
 task_context "DepthCamera", subclasses: "CameraPlugin" do
     needs_configuration
 
     output_port 'distance_image', ro_ptr('base::samples::DistanceImage')
 end
-
+=end
 task_context "TOFCamera", subclasses: "CameraPlugin" do
     needs_configuration
 
-    output_port 'pointcloud', 'base::samples::Pointcloud'
-end
+    property("camera_frame", "std/string", "camera").
+	doc "The name of the imu frame."
+    property("world_frame", "std/string", "world").
+	doc "The name of the world frame."
 
+    output_port 'pointcloud', 'base::samples::Pointcloud'
+    output_port('orientation_samples', '/base/samples/RigidBodyState').
+        doc 'provides timestamped Pose matching the Pointcloud sample.'
+end
+=begin
 task_context "HighResRangeFinder", subclasses: "CameraPlugin" do
     needs_configuration
 
@@ -197,40 +218,21 @@ task_context "HighResRangeFinder", subclasses: "CameraPlugin" do
     output_port('pointcloud', '/base/samples/Pointcloud').
         doc 'Created by using the distance image of the DepthCamera'
 end
+=end
 
 task_context "Joints", subclasses: "Plugin" do
+    needs_configuration
 
-    property('names', 'std/vector</std/string>').
-        doc('Array of names of the motor in the scene file. The names get mapped to motor ids starting from zero')
     property('robot_name', '/std/string', '').
         doc('Name of the robot')
-    property('name_remap', 'std/vector</std/string>').
-        doc('If this array is set the joints will be renamed for the external interface')
-    property('parallel_kinematics', 'std/vector<mars/ParallelKinematic>').
-        doc('maps a single joint command to two joints to control parallel kinematics simulated by two joints')
-    property('scaling', 'std/vector<double>').
-	doc('Optional array of scale values that are applied to the mars joint values. Needs to be empty or the same size as names.')
-    property('offset', 'std/vector<double>').
-	doc('Optional array of offset values that added to the scaled mars joint values. Needs to be empty or the same size as names.')
-    # optional configuration for the rigid_body_states
-    # this module will generate on the
-    property "joint_transform", "base/JointTransformVector"
+    property('names', 'std/vector</std/string>').
+        doc('Array of names of the motor in the scene file. The names get mapped to motor ids starting from zero')
 
-    property("controlMode", "/mars/JointPositionAndSpeedControlMode", :IGNORE).doc('sets the how speed is interpreted in case speed and position is set :MAX_SPEED :IGNORE. unsupported: :SPEED_AT_POS')
-
-    output_port( "status_samples", "base/samples/Joints" ).
-	doc "status values for the joints"
     input_port( "command", "base/commands/Joints" ).
-	doc "command values for the joints"
+	    doc "command values for the joints"
 
-	output_port( "current_values", "mars/JointCurrents")
-
-    # if the joint_transform configuration is set, this port
-    # will output the joints in form of RigidBodyStates
-    #
-    # note: you will need a buffered connection if multiple joints
-    # are served by this module in order to not miss any transforms
-    output_port "transforms", "base/samples/RigidBodyState"
+    output_port( "status", "base/samples/Joints" ).
+	    doc "status values for the joints"
 
 end
 
@@ -245,6 +247,7 @@ task_context "ForceTorque6DOF", subclasses: "Plugin" do
             doc('If this array is set the sensors will be renamed for the external interface')
 end
 
+=begin
 task_context "ContactForceSensor", subclasses: "Plugin" do
 
     property('wrench_mappings', 'std::vector<mars/WrenchMapping>').
@@ -280,7 +283,7 @@ task_context "LaserRangeFinder", subclasses: "Plugin" do
         doc 'how much ranges measurement to merge into one single reported measurement'
 
     property('min_range', 'double', 0.0).
-        doc("Minimum valid range of the laser range finder") 
+        doc("Minimum valid range of the laser range finder")
 
     output_port('scans', 'base/samples/LaserScan').
         max_sizes('remission' => 2000, 'ranges' => 2000).
@@ -288,8 +291,9 @@ task_context "LaserRangeFinder", subclasses: "Plugin" do
     property('name', '/std/string', 'laser_scanner').
 	    doc('name of the sensor in the scene file')
     property('robot_name', '/std/string', '').
-        doc('Name of the robot')           
+        doc('Name of the robot')
 end
+=end
 
 # Can be used to simulate laser scanners with more than one vertical scan line
 # (e.g. Velodyne).
@@ -311,52 +315,57 @@ task_context "RotatingLaserRangeFinder", subclasses: "Plugin" do
 end
 
 task_context "IMU", subclasses: "Plugin" do
+    needs_configuration
 
-    property("provide_position", "/bool",false).
-        doc("Set to true is this Sensor should output position readings")
-
-    property("provide_orientation", "/bool",true).
-        doc("Set to true is this Sensor should output orientation readings")
-
-    property("provide_velocity", "/bool",true).
-        doc("Set to true is this Sensor should output angular/translational velocities") 
+    property('robot_name', '/std/string', '').
+        doc('Name of the robot')
+    property('name', '/std/string', 'imu').
+	    doc('name of the node in the scene file from which to get the imu data')
 
     property("imu_frame", "std/string", "imu").
-	doc "The name of the imu frame."
+        doc "The name of the imu frame."
     property("world_frame", "std/string", "world").
-	doc "The name of the world frame."
-    property('rotate_node_relative', '/std/vector<double>' ).
-	doc('if the robot is moved my mars (yaml), rotation of the IMU may be wrong and can be set here (in degrees)')
-    property("position_sigma", "double", 0.0).
-	doc "Standard deviation of the position, that will be applied to the measurement."
-    property("orientation_sigma", "double", 0.0).
-	doc "Standard deviation of the orientation, that will be applied to the measurement."
-    property("velocity_sigma", "double", 0.0).
-	doc "Standard deviation of the velocity, that will be applied to the measurement."
-    property("angular_velocity_sigma", "double", 0.0).
-	doc "Standard deviation of the angular velocity, that will be applied to the measurement."
+        doc "The name of the world frame."
 
-    output_port('orientation_samples', '/base/samples/RigidBodyState').
+    property("provide_position", "/bool",false).
+        doc("Set to true if this sensor should output position readings")
+    property("provide_orientation", "/bool",true).
+        doc("Set to true if this sensor should output orientation readings")
+    property("provide_velocity", "/bool",true).
+        doc("Set to true if this sensor should output angular/translational velocities")
+
+    property("position_sigma", "double", 0.0).
+	    doc "Standard deviation of the position, that will be applied to the measurement."
+    property("orientation_sigma", "double", 0.0).
+	    doc "Standard deviation of the orientation, that will be applied to the measurement."
+    property("velocity_sigma", "double", 0.0).
+	    doc "Standard deviation of the velocity, that will be applied to the measurement."
+    property("angular_velocity_sigma", "double", 0.0).
+	    doc "Standard deviation of the angular velocity, that will be applied to the measurement."
+
+    output_port('orientation', '/base/samples/RigidBodyState').
         doc 'provides timestamped IMUReading samples containing the orientation estimate as reported by the IMU.'
     output_port('calibrated_sensors', '/base/samples/IMUSensors').
         doc 'provides timestamped IMUReading samples containing the calibrated sensor readings.'
-
-    needs_configuration
-
-    property('name', '/std/string', 'imu').
-	    doc('name of the node in the scene file from which to get the imu data')
-    property('robot_name', '/std/string', '').
-        doc('Name of the robot')       
-
-    operation('estimate_bias').
-        argument('duration', '/uint16_t').
-        returns('/bool').
-        doc("Normally triggers bias estimation on the xsens imu, in simulation thios does nothing")
-
-
 end
 
+task_context "ImprintInfo", subclasses: "Plugin" do
+    needs_configuration
 
+    output_port("imprintInfo", "/std/string").
+        doc('Contact information seralized into yaml string')
+
+    output_port("x", "double").
+        doc('x')
+    output_port("y", "double").
+        doc('y')
+    output_port("type", "int").
+        doc('type')
+
+    periodic 0.5
+end
+
+=begin
 task_context "EntityFakeDetection", subclasses: "CameraPlugin" do
 
     property("frame_id", "/uint16_t", 1).
@@ -567,3 +576,4 @@ task_context "AuvMotion", subclasses: "ForceApplier" do
       doc("Buoyancy force applied to the vehicle")
 
 end
+=end

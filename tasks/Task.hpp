@@ -3,12 +3,15 @@
 
 #include "mars/TaskBase.hpp"
 #include <vector>
-#include <mars/data_broker/ReceiverInterface.h>
-#include <mars/interfaces/sim/NodeManagerInterface.h>
+#include <data_broker/ReceiverInterface.h>
 #include "Plugin.hpp"
 #include <boost/thread/mutex.hpp>
+#include <mars_interfaces/sim/DynamicObject.hpp>
 
 class QApplication;
+class QObject;
+class QMutex;
+class QWaitCondition;
 
 /** From MARS */
 //
@@ -23,7 +26,7 @@ namespace mars{
         class GraphicsManagerInterface;
     };
     namespace app{
-        class GraphicsTimer;
+        class MARS;
     };
 };
 
@@ -32,7 +35,7 @@ namespace mars {
 
     class Task;
 
-    // Argument to pass to startTaskFunc 
+    // Argument to pass to startTaskFunc
     struct TaskArguments
     {
         Task* mars;
@@ -56,7 +59,7 @@ namespace mars {
     * makes it accessible as a orogen module
     *
     * use subclassing to derive robot specific modules, e.g.
-    * 
+    *
     * task_context 'RobotSimulation' do
     *         subclasses 'mars::Task'
     * ..
@@ -66,23 +69,38 @@ namespace mars {
     class Task : public TaskBase, public mars::data_broker::ReceiverInterface
 
     {
-	friend class TaskBase;
+  friend class TaskBase;
     protected:
-        QApplication* app; 
-    	static mars::app::GraphicsTimer *graphicsTimer;
-	static mars::interfaces::SimulatorInterface* simulatorInterface;
-	static mars::Task* taskInterface;
-	static void* startTaskFunc(void *);
+        QObject* mExecutor = nullptr;
+        QMutex* mExecutorLock;
+        QWaitCondition* mExecutorSignal;
+        //QApplication* app;
+
+        /** Execute the given function in the Qt main thread, waiting for its
+         * execution to finish
+         *
+         * @throw MethodInQtThreadFailed if the function throws, propagating the
+         *   error message
+         */
+        void processInQtThread(std::function<void()> f);
+
+        //static mars::app::GraphicsTimer *graphicsTimer;
+        static mars::interfaces::SimulatorInterface* simulatorInterface;
+        static mars::Task* taskInterface;
+        void* startTaskFunc(void *);
         static std::string configDir;
-	static bool marsRunning;
+        static bool marsRunning;
+        bool configureError;
+        std::weak_ptr<mars::interfaces::DynamicObject> slopeEstimateFrame;
+        mars::utils::Vector outGravity;
 
-	pthread_t thread_info; 
-	static lib_manager::LibManager* libManager;
-
+        pthread_t thread_info;
+        static lib_manager::LibManager* libManager;
+        mars::app::MARS *simulation;
         mars::interfaces::PluginInterface* multisimPlugin;
 
         int getOptionCount(const std::vector<Option>& options);
-        
+
         /* This operation moves a node to a specific position, simpliar to the positions property but can be used during runtime
          */
         virtual void move_node(::mars::Positions const & arg);
@@ -99,36 +117,36 @@ namespace mars {
         virtual void loadScene(::std::string const & path);
 
         std::vector<Plugin*> plugins;
-        
+
         /* Dynamic Property setter of show_coordinate_system
          */
         virtual bool setShow_coordinate_system(bool value);
-        
+
         /* Dynamic Property setter of reaction_to_physics_error
          */
         virtual bool setReaction_to_physics_error(::std::string const & value);
 
-        
+
 
         // GraphicsTimer will be later called with the marsGraphics reference
         // which can be also NULL for a disabled gui
         mars::interfaces::GraphicsManagerInterface* marsGraphics;
-        
+
         virtual bool setSim_step_size(double value);
         virtual bool setGravity(::base::Vector3d const & value);
         virtual bool setGravity_internal(::base::Vector3d const & value);
         virtual void setPosition(::mars::Positions const & positions);
 
     public:
-	/** get the singleton instance of the simulator interface
-	 */
-	static mars::interfaces::SimulatorInterface* getSimulatorInterface();
-	static mars::Task* getTaskInterface();
+        /** get the singleton instance of the simulator interface
+         */
+        static mars::interfaces::SimulatorInterface* getSimulatorInterface();
+        static mars::Task* getTaskInterface();
 
         Task(std::string const& name = "mars::Task");
         Task(std::string const& name, RTT::ExecutionEngine* engine);
 
-	~Task();
+        ~Task();
 
         void registerPlugin(Plugin* plugin);
         void unregisterPlugin(Plugin* plugin);
@@ -146,14 +164,22 @@ namespace mars {
          *     ...
          *   end
          */
-         bool configureHook();
+        bool configureHook();
+
+        /** Method called during configureHook, but within the Qt thread
+         */
+        virtual void configureUI();
 
         /** This hook is called by Orocos when the state machine transitions
          * from Stopped to Running. If it returns false, then the component will
          * stay in Stopped. Otherwise, it goes into Running and updateHook()
          * will be called.
          */
-         bool startHook();
+        bool startHook();
+
+        /** Method called during startHook, but within the Qt thread
+         */
+        virtual void startUI();
 
         /** This hook is called by Orocos when the component is in the Running
          * state, at each activity step. Here, the activity gives the "ticks"
@@ -162,7 +188,7 @@ namespace mars {
          *
          * The warning(), error() and fatal() calls, when called in this hook,
          * allow to get into the associated RunTimeWarning, RunTimeError and
-         * FatalError states. 
+         * FatalError states.
          *
          * In the first case, updateHook() is still called, and recovered()
          * allows you to go back into the Running state.  In the second case,
@@ -171,8 +197,8 @@ namespace mars {
          * called before starting it again.
          *
          */
-         void updateHook();
-        
+        void updateHook();
+
 
         /** This hook is called by Orocos when the component is in the
          * RunTimeError state, at each activity step. See the discussion in
@@ -180,23 +206,26 @@ namespace mars {
          *
          * Call recovered() to go back in the Runtime state.
          */
-         void errorHook();
+        void errorHook();
 
         /** This hook is called by Orocos when the state machine transitions
          * from Running to Stopped after stop() has been called.
          */
-         void stopHook();
+        void stopHook();
 
         /** This hook is called by Orocos when the state machine transitions
          * from Stopped to PreOperational, requiring the call to configureHook()
          * before calling start() again.
          */
-         void cleanupHook();
-    
-         void receiveData(const mars::data_broker::DataInfo& info,const mars::data_broker::DataPackage& package,int id);
-        
+        void cleanupHook();
+
+        /** Method called during configureHook, but within the Qt thread
+         */
+        virtual void cleanupUI();
+
+        void receiveData(const mars::data_broker::DataInfo& info,const mars::data_broker::DataPackage& package,int id);
+
     };
 }
 
 #endif
-

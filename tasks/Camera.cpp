@@ -29,98 +29,106 @@ Camera::~Camera()
 
 bool Camera::configureHook()
 {
-    
+
     if (! mars::CameraPlugin::configureHook())
         return false;
-    
 
-    
 
-    
+
+
+
     return true;
-    
+
 }
 
 
 
 bool Camera::startHook()
 {
-    
+
     if (! mars::CameraPlugin::startHook())
         return false;
-    
+
     image = new base::samples::frame::Frame(width,height,8,base::samples::frame::MODE_RGB);
     ro_ptr.reset(image);
     marsImage.resize(width * height);
-    
+
     return true;
-    
+
 }
 
 
 
 void Camera::updateHook()
 {
-    
+
     mars::CameraPlugin::updateHook();
-    
 
-    
 
-    
+
+
+
 }
 
 
 
 void Camera::errorHook()
 {
-    
+
     mars::CameraPlugin::errorHook();
-    
 
-    
 
-    
+
+
+
 }
 
 
 
 void Camera::stopHook()
 {
-    
+
     mars::CameraPlugin::stopHook();
-    
 
-    
 
-    
+
+
+
 }
 
 
 
 void Camera::cleanupHook()
 {
-    
+
     mars::CameraPlugin::cleanupHook();
-    
 
-    
 
-    
+
+
+
 }
 
 void Camera::getData()
-{	
+{
+
+    if (camera == nullptr)
+    {
+        exception(EXCEPTION);
+        return;
+    }
+
+    camera->getImage(marsImage);
 
     image = ro_ptr.write_access();
-    
-    image->time = base::Time::fromMilliseconds(camera->getImageTime());
-    camera->getImage(marsImage);
+    //image->time = base::Time::fromMilliseconds(camera->getImageTime());
+    image->time = getTime();
+
     //copy image data
     //data format is ARGB therefore we have to skip every 4th byte
     //to convert it into RGB
     //image is flipped
-    const mars::sim::Pixel *image_src = marsImage.data();
+    const mars::core::Pixel *image_src = marsImage.data();
     uint8_t *image_dst = image->getImagePtr();
     for(int i=height-1;i>=0;--i)
     {
@@ -136,7 +144,7 @@ void Camera::getData()
     //set attributes
     image->received_time = image->time;
     image->frame_status = base::samples::frame::STATUS_VALID;
-    
+
     // add sensor_id as attribute
     base::samples::frame::frame_attrib_t attr;
     attr.set("reference_sensor_id", camera->name);

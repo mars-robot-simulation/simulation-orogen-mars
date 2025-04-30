@@ -5,8 +5,12 @@
 
 #include "mars/RotatingLaserRangeFinderBase.hpp"
 
+#include <mars_core/sensors/RotatingRaySensor.hpp>
+
+#include <memory>
+
 namespace mars{
-    namespace sim{
+    namespace core{
         class  RotatingRaySensor;
     };
 };
@@ -21,7 +25,7 @@ namespace mars {
 	friend class RotatingLaserRangeFinderBase;
     protected:
         int mSensorID;
-        mars::sim::RotatingRaySensor* mSensor;
+        std::shared_ptr<mars::core::RotatingRaySensor> mSensor;
 
     public:    
         /** TaskContext constructor for RotatingLaserRangeFinder

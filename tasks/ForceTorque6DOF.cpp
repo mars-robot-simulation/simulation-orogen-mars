@@ -2,10 +2,22 @@
 
 #include "ForceTorque6DOF.hpp"
 
-#include <mars/interfaces/sim/SensorManagerInterface.h>
-#include <mars/sim/Joint6DOFSensor.h>
-#include <mars/sim/NodeContactForceSensor.h>
+//#include <mars/interfaces/sim/SensorManagerInterface.h>
+//#include <mars/sim/Joint6DOFSensor.h>
+//#include <mars/sim/NodeContactForceSensor.h>
 #include <base/Float.hpp>
+
+#include <mars_interfaces/sim/ControlCenter.h>
+#include <mars_utils/mathUtils.h>
+
+#include <envire_core/graph/EnvireGraph.hpp>
+#include <envire_core/items/Item.hpp>
+#include <envire_types/sensors/Joint6DOFSensor.hpp>
+
+#include <mars_core/sensors/Joint6DOFSensor.hpp>
+
+#include <base/Logging.hpp>
+
 
 using namespace mars;
 
@@ -23,52 +35,47 @@ ForceTorque6DOF::~ForceTorque6DOF()
 {
 }
 
-
 void ForceTorque6DOF::init()
 {
-// for each of the names, get the mars motor id
-    for( size_t i=0; i<mars_ids.size(); ++i )
-    {
-       std::string &name( mars_names[i] );
-       int marsId = control->sensors->getSensorID( name );
-
-        if( marsId ) {
-            mars_ids[i] = marsId;
-        }	else {
-            throw std::runtime_error("there is no sensor by the name of " + name);
-        }
-    }
 }
 
 void ForceTorque6DOF::update(double delta_t)
 {
+    using BaseSensorItem = envire::core::Item<std::shared_ptr<interfaces::BaseSensor>>;
+
     if(!isRunning()) return;
 
     //normally this should not result in a resize
-	  wrenches_deprecated.resize(mars_ids.size());
+	  wrenches_deprecated.resize(mars_names.size());
 
-    for( size_t i=0; i<mars_ids.size(); ++i ){
-        mars::interfaces::BaseSensor* base = control->sensors->getSimSensor(mars_ids[i]);
-        if (base) {
+    for( size_t i=0; i<mars_names.size(); ++i ){
+        auto& it = control->envireGraph->getItem<BaseSensorItem>(mars_names[i]);
+        auto baseSensor = it->getData();
+        if(!baseSensor){
+            throw std::runtime_error("There is no sensor by the name of " + mars_names[i]);
+        }
+        else {
             // try to convert to a specific sensor
-            mars::sim::Joint6DOFSensor* sensor6dof = dynamic_cast<mars::sim::Joint6DOFSensor*>(base);
-            mars::sim::NodeContactForceSensor* sensor1dof = dynamic_cast<mars::sim::NodeContactForceSensor*>(base);
+            std::shared_ptr<mars::core::Joint6DOFSensor> sensor6dof = std::dynamic_pointer_cast<mars::core::Joint6DOFSensor>(baseSensor);
+            
+            //TODO
+            //mars::core::NodeContactForceSensor* sensor1dof = std::dynamic_pointer_cast<mars::core::NodeContactForceSensor>(baseSensor);
 
-            if (sensor1dof || sensor6dof) {
+            if (/*sensor1dof ||*/ sensor6dof) {
 
                 base::Wrench wrench;
                 wrench.force = base::Vector3d(base::unset<double>(), base::unset<double>(), base::unset<double>());
                 wrench.torque = base::Vector3d(base::unset<double>(), base::unset<double>(), base::unset<double>());
 
                 // just assign values to the valid sensor
-                if (sensor6dof) {
+                //if (sensor6dof) {
                     sensor6dof->getForceData(&wrench.force);
                     sensor6dof->getTorqueData(&wrench.torque);
-                } else {
-                    mars::interfaces::sReal *sens_val;
-                    sensor1dof->getSensorData(&sens_val);
-                    wrench.force.z() = *sens_val;
-                }
+                //} else {
+                //    mars::interfaces::sReal *sens_val;
+                //    sensor1dof->getSensorData(&sens_val);
+                //    wrench.force.z() = *sens_val;
+                //}
 
                 wrenches.time = getTime();
                 wrenches.elements[i] = wrench;

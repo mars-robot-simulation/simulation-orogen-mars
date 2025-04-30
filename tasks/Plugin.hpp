@@ -5,16 +5,16 @@
 
 #include <mars/PluginBase.hpp>
 #include "Task.hpp"
-#include <mars/interfaces/sim/SimulatorInterface.h>
-#include <mars/data_broker/ReceiverInterface.h>
+#include <mars_interfaces/sim/SimulatorInterface.h>
+#include <data_broker/ReceiverInterface.h>
 
 namespace mars {
 
-    /*! \class Plugin 
+    /*! \class Plugin
      * \brief The task context provides and requires services. It uses an ExecutionEngine to perform its functions.
      * Essential interfaces are operations, data flow ports and properties. These interfaces have been defined using the oroGen specification.
      * In order to modify the interfaces you should (re)use oroGen and rely on the associated workflow.
-     * 
+     *
      * \details
      * The name of a TaskContext is primarily defined via:
      \verbatim
@@ -22,7 +22,7 @@ namespace mars {
          task('custom_task_name','mars::Plugin')
      end
      \endverbatim
-     *  It can be dynamically adapted when the deployment is called with a prefix argument. 
+     *  It can be dynamically adapted when the deployment is called with a prefix argument.
      */
     class Plugin : public PluginBase, public mars::interfaces::PluginInterface, public mars::data_broker::ReceiverInterface
     {
@@ -37,10 +37,10 @@ namespace mars {
          */
         Plugin(std::string const& name = "mars::Plugin");
 
-        /** TaskContext constructor for Plugin 
-         * \param name Name of the task. This name needs to be unique to make it identifiable for nameservices. 
-         * \param engine The RTT Execution engine to be used for this task, which serialises the execution of all commands, programs, state machines and incoming events for a task. 
-         * 
+        /** TaskContext constructor for Plugin
+         * \param name Name of the task. This name needs to be unique to make it identifiable for nameservices.
+         * \param engine The RTT Execution engine to be used for this task, which serialises the execution of all commands, programs, state machines and incoming events for a task.
+         *
          */
         Plugin(std::string const& name, RTT::ExecutionEngine* engine);
 
@@ -77,7 +77,7 @@ namespace mars {
          *
          * The error(), exception() and fatal() calls, when called in this hook,
          * allow to get into the associated RunTimeError, Exception and
-         * FatalError states. 
+         * FatalError states.
          *
          * In the first case, updateHook() is still called, and recover() allows
          * you to go back into the Running state.  In the second case, the
@@ -107,9 +107,9 @@ namespace mars {
         void cleanupHook();
 
 	/**
-	 * @brief provides the mars time to be used as timestamps 
+	 * @brief provides the mars time to be used as timestamps
 	 *
-	 * Returns the mars time, which is a combination of the wall time 
+	 * Returns the mars time, which is a combination of the wall time
 	 * when the mars was started, and the mars time elapsed since then.
 	 *
 	 * Use ONLY this time for setting the timestamps of the output data

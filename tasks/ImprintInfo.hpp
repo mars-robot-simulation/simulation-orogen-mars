@@ -1,68 +1,48 @@
 /* Generated from orogen/lib/orogen/templates/tasks/Task.hpp */
 
-#ifndef SIMULATION_MARSIMU_TASK_HPP
-#define SIMULATION_MARSIMU_TASK_HPP
+#pragma once
 
-#include "mars/IMUBase.hpp"
+#include "mars/ImprintInfoBase.hpp"
+#include <data_broker/ReceiverInterface.h>
 
-#include <boost/random/normal_distribution.hpp>
-#include <boost/random/mersenne_twister.hpp>
-#include <boost/optional.hpp>
-
-#include <mars_interfaces/sim/DynamicObject.hpp>
 namespace mars {
 
-    class IMUPlugin;
-
-    /*! \class IMU
+    /*! \class Altimeter 
      * \brief The task context provides and requires services. It uses an ExecutionEngine to perform its functions.
      * Essential interfaces are operations, data flow ports and properties. These interfaces have been defined using the oroGen specification.
      * In order to modify the interfaces you should (re)use oroGen and rely on the associated workflow.
-     *
+     * the name of the vehicle in the scene file
      * \details
      * The name of a TaskContext is primarily defined via:
      \verbatim
      deployment 'deployment_name'
-         task('custom_task_name','mars::IMU')
+         task('custom_task_name','mars::Altimeter')
      end
      \endverbatim
-     *  It can be dynamically adapted when the deployment is called with a prefix argument.
+     *  It can be dynamically adapted when the deployment is called with a prefix argument. 
      */
-    class IMU : public IMUBase
+    class ImprintInfo : public ImprintInfoBase
+
     {
-	friend class IMUBase;
+	friend class ImprintInfoBase;
 
-    protected:
-
-        boost::optional<std::weak_ptr<mars::interfaces::DynamicObject>> imu;
-
-        //long node_id;
-        base::samples::RigidBodyState rbs;
-        base::samples::IMUSensors imusens;
-	    boost::mt19937 rnd_generator;
-	    boost::normal_distribution<double> translation_noise;
-	    boost::normal_distribution<double> rotation_noise;
-	    boost::normal_distribution<double> velocity_noise;
-	    boost::normal_distribution<double> angular_velocity_noise;
-
-        void update( double time );
     public:
-        /** TaskContext constructor for IMU
+        /** TaskContext constructor for Altimeter
          * \param name Name of the task. This name needs to be unique to make it identifiable via nameservices.
          * \param initial_state The initial TaskState of the TaskContext. Default is Stopped state.
          */
-        IMU(std::string const& name = "mars::IMU");
+        ImprintInfo(std::string const& name = "mars::ImprintInfo");
 
-        /** TaskContext constructor for IMU
-         * \param name Name of the task. This name needs to be unique to make it identifiable for nameservices.
-         * \param engine The RTT Execution engine to be used for this task, which serialises the execution of all commands, programs, state machines and incoming events for a task.
-         *
+        /** TaskContext constructor for Altimeter 
+         * \param name Name of the task. This name needs to be unique to make it identifiable for nameservices. 
+         * \param engine The RTT Execution engine to be used for this task, which serialises the execution of all commands, programs, state machines and incoming events for a task. 
+         * 
          */
-        IMU(std::string const& name, RTT::ExecutionEngine* engine);
+        ImprintInfo(std::string const& name, RTT::ExecutionEngine* engine);
 
-        /** Default deconstructor of IMU
+        /** Default deconstructor of Altimeter
          */
-	    ~IMU();
+        ~ImprintInfo();
 
         /** This hook is called by Orocos when the state machine transitions
          * from PreOperational to Stopped. If it returns false, then the
@@ -93,7 +73,7 @@ namespace mars {
          *
          * The error(), exception() and fatal() calls, when called in this hook,
          * allow to get into the associated RunTimeError, Exception and
-         * FatalError states.
+         * FatalError states. 
          *
          * In the first case, updateHook() is still called, and recover() allows
          * you to go back into the Running state.  In the second case, the
@@ -123,6 +103,4 @@ namespace mars {
         void cleanupHook();
     };
 }
-
-#endif
 
