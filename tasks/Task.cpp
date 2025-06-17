@@ -158,6 +158,28 @@ void Task::loadScene(::std::string const & path)
     }
 }
 
+void Task::connectNodes(::std::string const & name1, ::std::string const & name2)
+{
+    if(simulatorInterface)
+    {
+        simulatorInterface->connectDynamicObjects(name1, name2);
+    }else
+    {
+        LOG_ERROR_S << "Simulator not yet started cout not connet dynamic objects";
+    }
+}
+
+void Task::disconnectNodes(::std::string const & name1, ::std::string const & name2)
+{
+    if(simulatorInterface)
+    {
+        simulatorInterface->disconnectDynamicObjects(name1, name2);
+    }else
+    {
+        LOG_ERROR_S << "Simulator not yet started cout not disconnet dynamic objects";
+    }
+}
+
 mars::interfaces::SimulatorInterface* Task::getSimulatorInterface()
 {
     return simulatorInterface;

@@ -48,6 +48,16 @@ task_context "Task" do
         operation("setPosition").
             argument("positions", "mars/Positions")
 
+        operation("connectNodes").
+            arg("name1", "/std/string").
+            arg("name2", "/std/string").
+        doc("connects two dynamic objects in MARS")
+
+        operation("disconnectNodes").
+            arg("name1", "/std/string").
+            arg("name2", "/std/string").
+        doc("disconnects two dynamic objects in MARS")
+
         property('add_floor',"/bool",false)
 
         property('gravity',"/base/Vector3d").dynamic
@@ -303,6 +313,7 @@ task_context "RotatingLaserRangeFinder", subclasses: "Plugin" do
 
     property('robot_name', '/std/string', '').
         doc('Name of the robot')
+
     property('name', '/std/string', 'unknown_ray_sensor').
 	    doc('Name of the RotatingRaySensor in the scene file')
 

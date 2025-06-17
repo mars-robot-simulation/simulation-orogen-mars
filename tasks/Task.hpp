@@ -116,6 +116,11 @@ namespace mars {
          */
         virtual void loadScene(::std::string const & path);
 
+        /* Handler for connect and disconnect node operations
+         */
+        virtual void connectNodes(::std::string const & name1, ::std::string const & name2);
+        virtual void disconnectNodes(::std::string const & name1, ::std::string const & name2);
+
         std::vector<Plugin*> plugins;
 
         /* Dynamic Property setter of show_coordinate_system
