@@ -10,9 +10,6 @@
 
 using namespace mars;
 
-// TODO: we should get it from simulator
-#define SIM_CENTER_FRAME_NAME "world"
-
 // TODO: add passive joint, without motors
 // TODO: check effort, it seems to be always zero
 
@@ -51,7 +48,7 @@ bool Joints::configureHook()
 
     // TODO: for now we get SubWorld frame by its frame name, it can be changed later
     // find all joints that required by config
-    const VertexDesc subWorldVertex = control->envireGraph->vertex("World::" + prefix);
+    const VertexDesc subWorldVertex = control->envireGraph->vertex(SIM_CENTER_FRAME_NAME);//"World::" + prefix);
     findJoints(subWorldVertex);
 
     // initialise jointStatus vector with the name of required joints
@@ -215,6 +212,7 @@ void Joints::findJoints(const VertexDesc &vertex)
             }
         }
     } else {
-        LOG_ERROR_S << "SubWorld " << "SubWorld::" << prefix << " can not be found";
+        LOG_ERROR_S << "Frame " << SIM_CENTER_FRAME_NAME << " can not be found";
+        //LOG_ERROR_S << "SubWorld " << "SubWorld::" << prefix << " can not be found";
     }
 }

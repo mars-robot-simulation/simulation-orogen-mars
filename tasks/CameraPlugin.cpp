@@ -48,7 +48,7 @@ bool CameraPlugin::configureHook()
 
     // in mars the imu frame will be stored as DynamicObject
     // in the graph frame with prefix + name syntax
-    const VertexDesc subWorldVertex = control->envireGraph->vertex("World::" + prefix);
+    const VertexDesc subWorldVertex = control->envireGraph->vertex(SIM_CENTER_FRAME_NAME);//"World::" + prefix);
     camera = nullptr;
     if (findSensors(subWorldVertex, sensorName))
         LOG_ERROR_S << "Camera '" << sensorName << "' is found";
