@@ -301,6 +301,8 @@ task_context "RotatingLaserRangeFinder", subclasses: "Plugin" do
 
     needs_configuration
 
+    property('robot_name', '/std/string', '').
+        doc('Name of the robot')
     property('name', '/std/string', 'unknown_ray_sensor').
 	    doc('Name of the RotatingRaySensor in the scene file')
 

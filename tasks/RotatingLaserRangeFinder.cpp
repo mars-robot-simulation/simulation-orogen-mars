@@ -46,8 +46,11 @@ bool RotatingLaserRangeFinder::startHook()
     if (! RotatingLaserRangeFinderBase::startHook())
         return false;
 
-    std::string name = _name.value();
+    std::string prefix = _robot_name.value();
+    std::string name = prefix + _name.value();
 
+    // at the moment the link name have to be the same as the laser sensor name
+    // we should think about splitting it
     if (!control->envireGraph->containsFrame(name))
     {
         LOG_ERROR_S << "There is no frame '" << name << "' in the graph";
