@@ -40,7 +40,7 @@ end
 # one deployment to be able to share their static resources.
 task_context "Task" do
 	needs_configuration
-	needs_global_initializer :qt5
+	needs_global_initializer :qt
 
         operation("loadScene").
             argument("path","/std/string")
