@@ -42,9 +42,9 @@ bool Joints::configureHook()
     // since all mars elements contains prefix in their names
     jointNames.clear();
     jointNames = _names.value();
-    std::for_each(jointNames.begin(), jointNames.end(),
-        [&](std::string &jointName)
-        { jointName = prefix + jointName; });
+    // std::for_each(jointNames.begin(), jointNames.end(),
+    //     [&](std::string &jointName)
+    //     { jointName = prefix + jointName; });
 
     // TODO: for now we get SubWorld frame by its frame name, it can be changed later
     // find all joints that required by config
@@ -127,8 +127,9 @@ void Joints::update(double time)
         base::JointState state;
         // check if the joint has motor or passive
         // get the data from mars
-        if (motorJoints.count(jointName)) {
-            MJPair &mj = motorJoints[jointName];
+        std::string tmpName = prefix+jointName;
+        if (motorJoints.count(tmpName)) {
+            MJPair &mj = motorJoints[tmpName];
             state.position = mj.first->getActualPosition();
             state.speed = mj.second->getVelocity();
             // TODO: should we use getMotorTorque?
@@ -194,7 +195,9 @@ void Joints::findJoints(const VertexDesc &vertex)
                     if(hasMotor)
                     {
                         // check if the motor is required by config
-                        if (std::find(jointNames.begin(), jointNames.end(), simMotor->getName()) != std::end(jointNames))
+                        std::string motorName = simMotor->getName();
+                        motorName = motorName.substr(prefix.size());
+                        if (std::find(jointNames.begin(), jointNames.end(), motorName) != std::end(jointNames))
                         {
                             motorJoints[simMotor->getName()] = std::make_pair(simMotor, jointInterface);
                         }
@@ -202,6 +205,7 @@ void Joints::findJoints(const VertexDesc &vertex)
                     else
                     {
                         // check if the joint is required by config
+                        jointName = jointName.substr(prefix.size());
                         if (std::find(jointNames.begin(), jointNames.end(), jointName) != std::end(jointNames))
                         {
                             passiveJoints[jointName] = jointInterface;
